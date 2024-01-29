@@ -1,4 +1,5 @@
 # imports
+from networktables import NetworkTables
 import apriltag
 import cv2
 import numpy as np
@@ -6,77 +7,13 @@ import math
 import time
 
 
-def list_ports():
-    """
-    Test the ports and returns a tuple with the available ports 
-    and the ones that are working.
-    """
-    is_working = True
-    dev_port = 0
-    working_ports = []
-    available_ports = []
-    while is_working:
-        camera = cv2.VideoCapture(dev_port)
-        if not camera.isOpened():
-            is_working = False
-            print("Port %s is not working." %dev_port)
-        else:
-            is_reading, img = camera.read()
-            w = camera.get(3)
-            h = camera.get(4)
-            if is_reading:
-                print("Port %s is working and reads images (%s x %s)" 
-%(dev_port,h,w))
-                working_ports.append(dev_port)
-            else:
-                print("Port %s for camera ( %s x %s) is present but does not reads." 
-%(dev_port,h,w))
-                available_ports.append(dev_port)
-        dev_port +=1
-    return available_ports,working_ports
-
-def processVideos(self, drawAxes=False, drawMask=False):
-    for atagcapture in self.apriltagcaptures:
-        if atagcapture.captureFrame() > 0 and atagcapture.genResults():
-            if drawAxes: atagcapture.drawAxes()
-            if drawMask: atagcapture.drawMask()
-            cameraname = atagcapture.getSink().getSource().getName()
-            cameratable = self.sd.getSubTable(cameraname)
-            translations, rotations, reprojerrors, timestamp, seenTagIDs = 
-atagcapture.getTranslationsAngles(
-                degrees=True)
-            self.tagIDs = 0 * self.tagIDs
-            for (tagID, translation, rotation, reprojerror) in zip(seenTagIDs, 
-translations, rotations, reprojerrors):
-                self.xTranslations[tagID] = translation[0]
-                self.yTranslations[tagID] = translation[1]
-                self.zTranslations[tagID] = translation[2]
-                self.yawRotations[tagID] = rotation[0]
-                self.confidences[tagID] = self.calculateConfidence(reprojerror)
-                self.tagIDs[tagID] = 1
-
-            # Put Data into networktables
-            cameratable.putNumberArray("xTranslation", self.xTranslations)
-            cameratable.putNumberArray("yTranslation", self.yTranslations)
-            cameratable.putNumberArray("zTranslation", self.zTranslations)
-            cameratable.putNumberArray("yawRotation", self.yawRotations)
-            cameratable.putNumberArray("Confidence", self.confidences)
-            cameratable.putNumber("Timestamp", timestamp + self.timediff)
-            cameratable.putNumberArray("AprilTagIDs", seenTagIDs)
-
 
 params = {678.154, 678.17, 318.135, 228.374}
 
 
 
 # Predefine variable
-list_ports()
-
 videoSource = 0
-
-scale = 60
-
-cap_fps = 1
 
 prev_frame_time = 0
 
@@ -85,6 +22,10 @@ new_frame_time = 0
 
 # GENERAL
 
+NetworkTables.initialize()
+table = NetworkTables.getTable("SmartDashboard")
+
+
 option = apriltag.DetectorOptions(families="tag36h11")
 
 detector = apriltag.Detector(option)
@@ -92,8 +33,6 @@ detector = apriltag.Detector(option)
 source = cv2.VideoCapture(videoSource)
 
 while cv2.waitKey(1) != 27:
-
-
 
     #
     # source.set(cv2.CAP_PROP_FPS, cap_fps)
@@ -116,8 +55,7 @@ while cv2.waitKey(1) != 27:
 
     text = "aprilTag num:\t{a}".format(a=len(results))
 
-    cv2.putText(image, text, (50, 50), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2, 
-cv2.LINE_4, False)
+    cv2.putText(image, text, (50, 50), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2, cv2.LINE_4, False)
 
     # FPS
     new_frame_time = time.time()
@@ -125,8 +63,7 @@ cv2.LINE_4, False)
     fps = 1 / (new_frame_time - prev_frame_time)
     prev_frame_time = new_frame_time
 
-    cv2.putText(image, str(int(fps)), (400, 50), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 
-255, 0), 2, cv2.LINE_4, False)
+    cv2.putText(image, str(int(fps)), (400, 50), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2, cv2.LINE_4, False)
 
     for r in results:
         # extract R bounding box (x, y)-coordinates for the AprilTag
@@ -146,14 +83,12 @@ cv2.LINE_4, False)
         cv2.circle(image, (cX, cY), 5, (0, 0, 255), -1)
         # draw the tag family on the image
         tagFamily = r.tag_family.decode("utf-8")
-        cv2.putText(image, tagFamily, (ptA[0], ptA[1] - 15),
-                    cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
+        cv2.putText(image, tagFamily, (ptA[0], ptA[1] - 15),cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
         # new code
         # find distance
         # print(str(r.tag_id))
         # write a number
-        cv2.putText(image, str(r.tag_id), (cX, cY), cv2.FONT_HERSHEY_SIMPLEX, 5, (0, 
-255, 0), 2, cv2.LINE_4, False)
+        cv2.putText(image, str(r.tag_id), (cX, cY), cv2.FONT_HERSHEY_SIMPLEX, 5, (0, 255, 0), 2, cv2.LINE_4, False)
 
         # find Pos
         pose, a, b = detector.detection_pose(r, params)
@@ -171,8 +106,9 @@ cv2.LINE_4, False)
         x = pose_new[0] * 6.94467694627
         y = pose_new[2] * 6.94467694627
         
-        print("\tx:"+str(x)+"\t z:"+str(y)+"\t hyp:"+str(math.sqrt(pow(x, 2) + 
-pow(y, 2)))+"\tFPS:"+str(fps),flush=True  )
+
+
+        print("\tx:"+str(x)+"\t z:"+str(y)+"\t hyp:"+str(math.sqrt(pow(x, 2) +  pow(y, 2)))+"\tFPS:"+str(fps),flush=True )
         
         
         # print(str)
