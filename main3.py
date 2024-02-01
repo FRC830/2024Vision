@@ -42,8 +42,8 @@ detector = Detector(families='tag36h11',
 source = cv2.VideoCapture(videoSource)
 
 def resetApriltagstuff():
-    for i in (3, 5, 6, 7):
-        table.putString("Apriltag ID{a}".format(a=str(i)))
+    for i in {3, 5, 6, 7}:
+        table.putString("Apriltag ID:{a}".format(a=str(i)), "NOT DETECTED!")
 
 def drawBoxesAndLabelStuff(r, image):
     # extract R bounding box (x, y)-coordinates for the AprilTag
@@ -88,7 +88,7 @@ while True:
     new_frame_time = time.time()
     fps = 1/ (new_frame_time - prev_frame_time)
     prev_frame_time = new_frame_time
-    
+    table.putNumber("FPS", fps)
     for r in results:
         if(r.tag_id == 3 or r.tag_id == 5 or r.tag_id == 6 or r.tag_id == 7):
             table.putString("Objective AprilTag Detected?", "Detected!")
@@ -103,5 +103,6 @@ while True:
 
         # find Pos
         pose = r.pose_t
+        print(r.pose_t)
      
-        table.putString("Apriltag ID:{a}".format(a=str(r.tag_id)), "X: {a},Y: {b},Z: {c}".format(a=str(pose[0][3]), b=str(pose[2][3]), c=str(math.sqrt(pow(x, 2) +  pow(y, 2)))))
+        table.putString("Apriltag ID:{a}".format(a=str(r.tag_id)), "X: {a},Y: {b},Z: {c}".format(a=str(pose[0]), b=str(pose[2]), c=str(math.sqrt(pow(pose[0], 2) +  pow(pose[2], 2)))))

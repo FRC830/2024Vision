@@ -98,6 +98,7 @@ while True:
     for r in results:
         if(r.tag_id == 3 or r.tag_id == 5 or r.tag_id == 6 or r.tag_id == 7):
             table.putString("Objective AprilTag Detected?", "Detected!")
+            print()
             # new_img = drawBoxesAndLabelStuff(r, image)
         else:
             table.putString("Objective AprilTag Detected?", "Not Detected!")
