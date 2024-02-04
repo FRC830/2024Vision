@@ -5,7 +5,7 @@ import cv2
 import numpy as np
 import math
 import time
-
+from cscore import CameraServer, VideoSource, UsbCamera, MjpegServer, CvSink, CvSource, VideoMode
 
 
 curCorrectionFactor = {
@@ -26,8 +26,21 @@ numOfATags = 0
 
 NetworkTables.initialize(server='roborio-830-frc.local')
 tables = NetworkTables.getTable("SmartDashboard")
-
 table = tables.getSubTable('vision')
+
+
+# camera = CameraServer.startAutomaticCapture(0)
+
+# videoInput = CameraServer.getVideo()
+
+server = CameraServer.addServer("Camera ServerA", 6969)
+serverb = CameraServer.addServer("Camera ServerB", 7000)
+
+videoOutput = CvSource("videoOutput", VideoMode.PixelFormat(4), 640, 480, 30)
+visionOutput = CvSource("visionOutput", VideoMode.PixelFormat(4), 640, 480, 30)
+
+server.setSource(videoOutput)
+serverb.setSource(visionOutput)
 
 
 detector = Detector(families='tag36h11',
@@ -97,13 +110,19 @@ def drawBoxesAndLabelStuff(r, image):
 
 
 while True:
+
     curCorrectionFactor = getCorrectionFactors()
     time.sleep(.01)
     temp, image_old = source.read()
+    
+
+
     if (temp == False):
         continue
 
     image = cv2.resize(image_old, dim, interpolation=cv2.INTER_AREA)
+    visionOutput.putFrame(image)
+
     gray = cv2.cvtColor(image, cv2.COLOR_RGB2GRAY)
     # gray = gray.astype(np.uint8)
     # temp, binary = cv2.threshold(gray, 150, 230, cv2.THRESH_BINARY)
@@ -124,7 +143,7 @@ while True:
         if(r.tag_id == 3 or r.tag_id == 5 or r.tag_id == 6 or r.tag_id == 7):
             table.putString("Objective AprilTag Detected?", "Detected!")
         else:
-            table.putString("Objective AprilTag Detected?", "Not Detected!")
+            table.putString("Objective AprilTag Detected?", "Not Detected!") 
             continue
 
         # if u wanna draw boxes and stuff do 
@@ -134,4 +153,6 @@ while True:
         # find Pos
         pose = r.pose_t
         updateApriltagStuff(r.tag_id, pose)
+        image = drawBoxesAndLabelStuff(r, image)
+    visionOutput.putFrame(image)
     updateCorrectionFactors(curCorrectionFactor)
