@@ -44,8 +44,8 @@ def updateDashboardTag(id, poseT):
     Y = -pose[1] * 39.37
     Z = pose[0] * 39.37
 
-    x = (0.831 * X) + (0.551 * Z) + (2 * 9.5)
-    y = Y + (-0.5)
+    x = (0.831 * X) + (0.551 * Y) + (2 * 9.5)
+    y = Z + (-0.5)
 
     table.putBoolean("Apriltag {a} Detected".format(a=id), True)
     table.putNumber("Apriltag {a} X: ".format(a=id), x)
